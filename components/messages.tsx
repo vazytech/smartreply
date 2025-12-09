@@ -8,6 +8,8 @@ import { motion } from 'framer-motion';
 import { useMessages } from '@/hooks/use-messages';
 import type { ChatMessage } from '@/lib/types';
 import { useDataStream } from './data-stream-provider';
+import { SmartReply } from './smart-reply';
+import { useSmartReplies } from '@/hooks/use-smart-replies';
 
 interface MessagesProps {
   chatId: string;
@@ -16,6 +18,7 @@ interface MessagesProps {
   messages: ChatMessage[];
   setMessages: UseChatHelpers<ChatMessage>['setMessages'];
   regenerate: UseChatHelpers<ChatMessage>['regenerate'];
+  sendMessage: UseChatHelpers<ChatMessage>['sendMessage'];
   isReadonly: boolean;
   isArtifactVisible: boolean;
 }
@@ -27,6 +30,7 @@ function PureMessages({
   messages,
   setMessages,
   regenerate,
+  sendMessage,
   isReadonly,
 }: MessagesProps) {
   const {
@@ -37,6 +41,11 @@ function PureMessages({
     hasSentMessage,
   } = useMessages({
     chatId,
+    status,
+  });
+
+  const { smartReplies, isGenerating } = useSmartReplies({
+    messages,
     status,
   });
 
@@ -72,6 +81,15 @@ function PureMessages({
       {status === 'submitted' &&
         messages.length > 0 &&
         messages[messages.length - 1].role === 'user' && <ThinkingMessage />}
+
+      {!isReadonly && smartReplies.length > 0 && (
+        <SmartReply
+          chatId={chatId}
+          replies={smartReplies}
+          sendMessage={sendMessage}
+          isLoading={isGenerating || status !== 'ready'}
+        />
+      )}
 
       <motion.div
         ref={messagesEndRef}
