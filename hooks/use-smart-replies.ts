@@ -1,6 +1,20 @@
 import { useState, useEffect } from 'react';
 import type { ChatMessage } from '@/lib/types';
 
+function extractTextFromMessage(msg: ChatMessage): string {
+  const textParts = msg.parts?.filter((part) => part.type === 'text');
+  return textParts?.map((part) => part.text).join(' ') || '';
+}
+
+function formatMessagesForAPI(messages: ChatMessage[]) {
+  return messages
+    .map((msg) => ({
+      role: msg.role,
+      content: extractTextFromMessage(msg),
+    }))
+    .filter((msg) => msg.content.length > 0);
+}
+
 export function useSmartReplies({
   messages,
   status,
@@ -29,19 +43,7 @@ export function useSmartReplies({
       setIsGenerating(true);
       try {
         // Convert messages to simple format for API
-        const formattedMessages = messages
-          .map((msg) => {
-            // Extract text content from message parts
-            const textParts = msg.parts?.filter((part) => part.type === 'text');
-            const content =
-              textParts?.map((part) => part.text).join(' ') || '';
-
-            return {
-              role: msg.role,
-              content,
-            };
-          })
-          .filter((msg) => msg.content.length > 0);
+        const formattedMessages = formatMessagesForAPI(messages);
 
         const response = await fetch('/api/smart-reply', {
           method: 'POST',

@@ -13,6 +13,29 @@ const requestSchema = z.object({
   ),
 });
 
+/**
+ * Parses AI-generated text to extract suggestion strings.
+ * Tries to parse as JSON first, then falls back to line-by-line extraction.
+ * Removes common formatting like quotes, numbers, dashes, and list markers.
+ */
+function parseSuggestionsFromText(text: string): string[] {
+  const lines = text
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(
+      (line) =>
+        line.length > 0 &&
+        !line.startsWith('[') &&
+        !line.startsWith(']') &&
+        !line.startsWith('{') &&
+        !line.startsWith('}'),
+    )
+    .map((line) => line.replace(/^["\-\d.]+\s*/, '').replace(/["]+$/, ''))
+    .slice(0, 3);
+
+  return lines;
+}
+
 export async function POST(request: Request) {
   try {
     const session = await auth();
@@ -52,28 +75,15 @@ Make the suggestions diverse - include a follow-up question, an acknowledgment, 
       temperature: 0.7,
     });
 
-    // Parse the AI response
+    // Try to parse the AI response as JSON
     try {
       const suggestions = JSON.parse(text);
       if (Array.isArray(suggestions) && suggestions.length > 0) {
         return Response.json({ replies: suggestions.slice(0, 3) });
       }
     } catch (parseError) {
-      // If parsing fails, try to extract suggestions from text
-      const lines = text
-        .split('\n')
-        .map((line) => line.trim())
-        .filter(
-          (line) =>
-            line.length > 0 &&
-            !line.startsWith('[') &&
-            !line.startsWith(']') &&
-            !line.startsWith('{') &&
-            !line.startsWith('}'),
-        )
-        .map((line) => line.replace(/^["\-\d.]+\s*/, '').replace(/["]+$/, ''))
-        .slice(0, 3);
-
+      // If JSON parsing fails, extract suggestions from text line by line
+      const lines = parseSuggestionsFromText(text);
       if (lines.length > 0) {
         return Response.json({ replies: lines });
       }

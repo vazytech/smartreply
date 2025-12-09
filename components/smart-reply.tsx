@@ -5,6 +5,7 @@ import { Button } from './ui/button';
 import { memo } from 'react';
 import type { UseChatHelpers } from '@ai-sdk/react';
 import type { ChatMessage } from '@/lib/types';
+import equal from 'fast-deep-equal';
 
 interface SmartReplyProps {
   chatId: string;
@@ -61,8 +62,7 @@ export const SmartReply = memo(
     if (prevProps.chatId !== nextProps.chatId) return false;
     if (prevProps.isLoading !== nextProps.isLoading) return false;
     if (prevProps.replies.length !== nextProps.replies.length) return false;
-    if (JSON.stringify(prevProps.replies) !== JSON.stringify(nextProps.replies))
-      return false;
+    if (!equal(prevProps.replies, nextProps.replies)) return false;
 
     return true;
   },
